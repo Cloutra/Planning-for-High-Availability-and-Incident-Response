@@ -1,0 +1,122 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: This template provisions a user with a timed and limited access policy
+
+Parameters:
+  IamUserName:
+    Type: String
+    Description: Username of Iam user
+  UserPassword:
+    Type: String
+    Description: Random Password of iam user.
+    Default: "c2O*6b@tHlt&c+i?aSpI"
+  StartTime:
+    Type: String
+    Description: Time to start lab in UTC e.g "2022-10-03T11:00:00Z"
+    Default: "2022-10-09T08:00:00Z"
+  EndTime:
+    Type: String
+    Description: Time to end lab in UTC e.g "2022-10-03T11:00:00Z"
+    Default: "2022-10-10T15:00:00Z"
+
+Resources:
+  CloutraUser:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: !Ref UserPassword
+        PasswordResetRequired: False
+      Path: /
+      ManagedPolicyArns:
+        - "arn:aws:iam::841363633746:policy/SSM-Doc-manual-policy"
+        - !Ref PermissionPolicy
+      Tags:
+        - Key: lab
+          Value: !Ref IamUserName
+      UserName: !Ref IamUserName
+
+  PermissionPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName: !Ref IamUserName # give a name to this policy
+      Description: Customer managed policy for only access required lab.
+      PolicyDocument: # (required) JSON policy document
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+              - "ssm:*"
+              - "ec2:*"
+              - "s3:*"
+              - "codedeploy:*"
+              - "codeartifact:*"
+              - "codebuild:*"
+              - "codecommit:*"
+              - "codepipeline:*"
+              - "cloudformation:CreateStack"
+              - "cloudformation:UpdateStack"
+              - "cloudformation:DescribeStacks"
+              - "cloudformation:GetTemplateSummary"
+              - "cloudformation:ListStacks"
+              - "cloudformation:ListStackResources"
+              - "cloudformation:CreateUploadBucket"
+              - "cloudformation:DescribeStackEvents"
+              - "cloudformation:ValidateTemplate"
+              - "cloudformation:GetTemplate"
+              - "cloudformation:TagResource"
+              - "cloudformation:CreateStackSet"
+              - "cloudformation:CreateStackInstances"
+              - "cloudformation:ListStackSets"
+              - "cloudformation:ListStackInstances"
+              - "cloudformation:ListStackSetOperations"
+              - "cloudformation:DescribeStackEvents"
+              - "cloudformation:DescribeStackInstance"
+              - "cloudformation:DescribeStackResources"
+              - "cloudformation:GetStackPolicy"
+              - "cloudformation:DescribeStackResource"
+              - "cloudformation:DescribeStackSet"
+            Resource: "*"
+            Condition:
+              DateGreaterThan:
+                aws:CurrentTime: !Ref StartTime
+              DateLessThan:
+                aws:CurrentTime: !Ref EndTime
+          - Effect: Deny
+            Action:
+              - "ssm:Delete*"
+              - "s3:Delete*"
+              - "s3:PutAccountPublicAccessBlock"
+              - "ec2:Delete*"
+              - "ec2:Detach*"
+              - "ec2:Disable*"
+              - "ec2:Deregister*"
+              - "ec2:Deprovision*"
+              - "ec2:Disassociate*"
+              - "ec2:Terminate*"
+              - "ec2:Unassign*"
+              - "codedeploy:Delete*"
+              - "codeartifact:Delete*"
+              - "codebuild:Delete*"
+              - "codecommit:Delete*"
+              - "codepipeline:Delete*"
+              - "iam:Delete*"
+            Resource: "*"
+            Condition:
+              DateGreaterThan:
+                aws:CurrentTime: !Ref StartTime
+              DateLessThan:
+                aws:CurrentTime: !Ref EndTime
+
+Outputs:
+  CloutraUser:
+    Description: The username of cloutra user
+    Value: !Ref IamUserName
+  UserPassword:
+    Description: The Password of cloutra user
+    Value: !Ref UserPassword
+  AWSConsoleLoginURL:
+      Value: 
+        !Sub 'https://${AWS::AccountId}.signin.aws.amazon.com/console'
+      Description: "Use this URL to log into your account via the AWS Management Console for IAM user: AWSAmplifyDeveloperIAMUser"
